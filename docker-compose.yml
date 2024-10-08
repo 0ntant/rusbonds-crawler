@@ -1,0 +1,45 @@
+services:
+  chrome-stadalone:
+    image: selenium/standalone-chromium:126.0
+    shm_size: 2gb
+    environment:
+      - TZ=Asia/Vladivostok
+      - SE_VNC_NO_PASSWORD=true
+    networks:
+      - internal_net
+    ports:
+      - '4444:4444'
+      - '7900:7900'
+    restart: "no"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:4444" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+  rusbonds-crawler:
+    image: rusbonds-crawler:1.1.0
+    container_name: rusbonds-crawler
+    environment:
+      - TZ=Asia/Vladivostok
+    build:
+      dockerfile: Dockerfile
+    networks:
+      - internal_net
+    volumes:
+      - ./dump:/app/dump
+      - ./logs:/app/logs
+      - ./client_secret_787739668579-k08tm7ikrpurjee2ot0mrqk84212f88n.apps.googleusercontent.com.json:/app/client_secret_787739668579-k08tm7ikrpurjee2ot0mrqk84212f88n.apps.googleusercontent.com.json
+      - ./config.container.properties:/app/config.properties
+      - ./tokens:/app/tokens
+    restart: "no"
+    depends_on:
+      chrome-stadalone:
+        condition: service_healthy
+networks:
+  internal_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.2.0/24
