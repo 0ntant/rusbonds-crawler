@@ -41,12 +41,7 @@ public class Bond
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Bond bond = (Bond) o;
-        return Objects.equals(isin, bond.isin);
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return isin != null ? isin.hashCode() : 0;
+        return Objects.equals(issuerName, bond.issuerName)
+                && Objects.equals(paperName, bond.paperName) ;
     }
 }

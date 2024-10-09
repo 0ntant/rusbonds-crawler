@@ -40,11 +40,12 @@ public class BondMapper {
 
     public static Bond map(List<Object> bond)
     {
+        String isin = validateIsin(bond.get(3));
         return Bond.builder()
                 .number(Integer.valueOf((String) bond.get(0)))
                 .issuerName((String) bond.get(1))
                 .paperName((String) bond.get(2))
-                .isin((String) bond.get(3))
+                .isin(isin)
                 .section((String) bond.get(4))
                 .rate(objectToDouble(bond.get(5)))
                 .yieldPurchasePricePercent(objectToDouble(bond.get(6)))
@@ -63,6 +64,12 @@ public class BondMapper {
                 .build();
     }
 
+    private static String validateIsin(Object isin)
+    {
+        String isinStr = (String) isin;
+        return isinStr.replace(" ", "");
+    }
+
     private static LocalDate objectToLocalDate(Object value)
     {
         String valueStr = value.toString();
@@ -72,7 +79,6 @@ public class BondMapper {
         }
         return LocalDate.parse(valueStr, formatter);
     }
-
 
     private static Double finObjectToDouble(Object value)
     {

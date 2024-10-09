@@ -5,7 +5,8 @@ WORKDIR /build
 COPY src/main src/main
 COPY pom.container.xml pom.xml
 
-RUN mvn clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2  mvn clean package  \
+    -DskipTests
 
 FROM bellsoft/liberica-openjdk-debian:17.0.12-10
 

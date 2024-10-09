@@ -1,7 +1,6 @@
 package app.service;
 
 import app.mapper.BondMapper;
-import app.mapper.RusbondMapper;
 import app.model.Bond;
 import lombok.extern.slf4j.Slf4j;
 
@@ -9,6 +8,7 @@ import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
@@ -47,7 +47,7 @@ public class BondSheetService
 
     public int getMaxRow()
     {
-        return googleSheetService.findMaxRows(String.format("%s!D:D",sheetName)) - rowOffset + 1;
+        return googleSheetService.findMaxRows(String.format("%s!A:A",sheetName)) - rowOffset + 1;
     }
 
     public void writeBond(Bond bond)
@@ -61,13 +61,14 @@ public class BondSheetService
 
     public void writeBonds(List<Bond> bonds)
     {
+        sortByYieldNowRev(bonds);
+        numerateBonds(bonds);
         String rangeToWrite = String.format(
                 rangeTemplate,
                 sheetName,
                 rowOffset,
                 bonds.size() + 1
         );
-
         List<List<Object>> bondObjects = bonds
                 .stream()
                 .map(BondMapper::map)
@@ -78,11 +79,25 @@ public class BondSheetService
 
     private void  formatTable(List<Bond> bonds)
     {
-        String rangeToFormatNow =  String.format("%s!H%s:H%s",sheetName, rowOffset,bonds.size()+1);
-        String rangeToFormatPurchase =  String.format("%s!J%s:J%s",sheetName, rowOffset,bonds.size()+1);
+        String rangeToFormatNow = String.format("%s!H%s:H%s",sheetName, rowOffset,bonds.size()+1);
+        String rangeToFormatPurchase = String.format("%s!J%s:J%s",sheetName, rowOffset,bonds.size()+1);
 
         googleSheetService.setColumnFormatCurrency(rangeToFormatNow);
         googleSheetService.setColumnFormatCurrency(rangeToFormatPurchase);
+    }
+
+    private void sortByYieldNowRev(List<Bond> bonds)
+    {
+        bonds.sort(Comparator.comparingDouble(Bond::getYieldNow).reversed());
+    }
+
+    private void numerateBonds(List<Bond> bonds)
+    {
+        int count = 1;
+        for (Bond bond: bonds)
+        {
+            bond.setNumber(count++);
+        }
     }
 
     public void writeModifyDate()
@@ -108,16 +123,19 @@ public class BondSheetService
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("M-d-yyyy");
         LocalDate localDate = LocalDate.now();
         String dumpDir = String.format(
-                "/%s/dump/%s.csv",
+                "/%s/dump/%s_%s_backup.csv",
                 file.getAbsoluteFile(),
-                localDate.format(formatter));
+                localDate.format(formatter),
+                sheetName
+
+        );
         googleSheetService.exportTable(range, dumpDir);
         return dumpDir;
     }
 
     public void importData(String dumpFile)
     {
-        googleSheetService.exportTable(range, dumpFile);
+        googleSheetService.importCsvToSheet(range, dumpFile);
     }
 
     private String getModifyDateRange()

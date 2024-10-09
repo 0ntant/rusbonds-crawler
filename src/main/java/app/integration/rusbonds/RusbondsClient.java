@@ -80,7 +80,7 @@ public class RusbondsClient
         }
     }
 
-    public int getFindtoolId(String isin)
+    public JsonNode getFindtoolId(String isin)
     {
         try
         {
@@ -99,8 +99,9 @@ public class RusbondsClient
                     .build();
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
             logResponse(request, response);
-            JsonNode jsonResponse = jsonMapper.readTree(response.body());
-            return RusbondMapper.fintoolId(jsonResponse);
+           // JsonNode jsonResponse = jsonMapper.readTree(response.body());
+           // return RusbondMapper.fintoolId(jsonResponse);
+            return jsonMapper.readTree(response.body());
         }
         catch (Exception ex)
         {
@@ -110,7 +111,7 @@ public class RusbondsClient
         }
     }
 
-    public int getIssuerId(int findtoolId)
+    public JsonNode getIssuerId(int findtoolId)
     {
         try
         {
@@ -124,8 +125,9 @@ public class RusbondsClient
                     .build();
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
             logResponse(request, response);
-            JsonNode jsonResponse = jsonMapper.readTree(response.body());
-            return RusbondMapper.issuerId(jsonResponse);
+            //JsonNode jsonResponse = jsonMapper.readTree(response.body());
+           // return RusbondMapper.issuerId(jsonResponse);
+            return jsonMapper.readTree(response.body());
         }
         catch (Exception ex)
         {
@@ -135,7 +137,7 @@ public class RusbondsClient
         }
     }
 
-    public double getMarketValueNow(int issuerId)
+    public JsonNode getMarketValueNow(int issuerId)
     {
         try
         {
@@ -149,8 +151,9 @@ public class RusbondsClient
                     .build();
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
             logResponse(request, response);
-            JsonNode responseJson = jsonMapper.readTree(response.body());
-            return RusbondMapper.marketValueNow(responseJson);
+           // JsonNode responseJson = jsonMapper.readTree(response.body());
+           //  return RusbondMapper.marketValueNow(responseJson);
+            return jsonMapper.readTree(response.body());
         }
         catch (Exception ex)
         {
@@ -167,7 +170,7 @@ public class RusbondsClient
         emptyRequest("https://rusbonds.ru/api/v2/rusbonds/common/banners", fintoolId);
     }
 
-    public String getRating(int issuerId)
+    public JsonNode getRating(int issuerId)
     {
         Random rand = new Random();
         try
@@ -188,8 +191,10 @@ public class RusbondsClient
             executeEmptyRequests(issuerId);
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
             logResponse(request, response);
-            JsonNode responseJson = jsonMapper.readTree(response.body());
-            return RusbondMapper.ratingRu(responseJson);
+           // JsonNode responseJson = jsonMapper.readTree(response.body());
+           // return RusbondMapper.ratingRu(responseJson);
+
+            return jsonMapper.readTree(response.body());
         }
         catch (Exception ex)
         {

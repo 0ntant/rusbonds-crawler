@@ -1,5 +1,6 @@
 package app.service;
 
+import app.exception.InvalidIsinException;
 import app.integration.docker.ClientChromeDocker;
 import app.model.Bond;
 import lombok.extern.slf4j.Slf4j;
@@ -7,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @Slf4j
 public class UpdateSheetService
@@ -28,25 +30,32 @@ public class UpdateSheetService
 
     public void startUpdate()
     {
-        prepareKeys();
+        Random rand = new Random();
         try
         {
+            prepareKeys();
             updateProcess();
         }
         catch (Exception ex)
         {
             ex.printStackTrace();
-            selRusbondsSer.closeSession();
-            waitMinutesPerUpdates+=3;
+            waitMinutesPerUpdates=rand.nextInt(15, 40);
             log.warn(
-                    "Bonds update process interrupt, wait minutes={} before continue update",
+                    "Bonds update process interrupt = {}, wait minutes={} before continue update",
+                    ex.getMessage(),
                     waitMinutesPerUpdates
             );
             waitMinutes(waitMinutesPerUpdates);
             startUpdate();
         }
-        selRusbondsSer.closeSession();
+        finally
+        {
+            selRusbondsSer.closeSession();
+        }
         selRusbondsSer.stopProxy();
+
+        List<Bond> bonds = bondSheetServ.getAll();
+        bondSheetServ.writeBonds(bonds);
     }
 
     public void updateProcess()
@@ -84,7 +93,20 @@ public class UpdateSheetService
 
     private void updateBond(Bond bond)
     {
-        int findtoolId = rusbondsServ.getFintoolId(bond);
+        int findtoolId = 0;
+        try
+        {
+            findtoolId = rusbondsServ.getFintoolId(bond);
+        }
+        catch (InvalidIsinException ex)
+        {
+            log.warn("Bond isin invalid={} set empty string",
+                    bond.getIsin()
+            );
+            bond.setIsin("");
+            saveUpdateBond(bond);
+            return;
+        }
         int issuerId = rusbondsServ.getIssuerId(findtoolId);
         updateMarketValueNow(bond, findtoolId);
         updateRating(bond, findtoolId);
@@ -96,7 +118,7 @@ public class UpdateSheetService
         List<Bond> bondsToUpdate = new ArrayList<>();
         for(Bond bond : bondSheetServ.getAll())
         {
-            if (!bond.getSysModifyDate().isEqual(LocalDate.now()))
+            if (bondNeedUpdate(bond))
             {
                bondsToUpdate.add(bond);
             }
@@ -104,7 +126,21 @@ public class UpdateSheetService
         return  bondsToUpdate;
     }
 
-    private void saveUpdateBond(Bond bond)
+    private boolean bondNeedUpdate(Bond bond)
+    {
+        if (bond.getIsin().isEmpty())
+        {
+            return false;
+        }
+
+        if (bond.getSysModifyDate().isEqual(LocalDate.now()))
+        {
+            return false;
+        }
+        return true;
+    }
+
+    public void saveUpdateBond(Bond bond)
     {
         log.info("Save updated bond ISIN={}", bond.getIsin());
         bond.setSysModifyDate(LocalDate.now());

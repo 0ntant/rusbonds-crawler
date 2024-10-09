@@ -49,14 +49,16 @@ public class GoogleSheetService
        writeAllTable(range, List.of(data));
     }
 
-    public void writeAllTable(String range, List<List<Object>> data)
+    public void writeAllTable(String range,
+                              List<List<Object>> data)
     {
-        ValueRange bodyToWrite = new ValueRange().setValues(data);
+        List<List<Object>> valuesToWrite = replaceDataWithFormula(range, data);
+        ValueRange bodyToWrite = new ValueRange().setValues(valuesToWrite);
         try
         {
             sheetsService.spreadsheets().values()
-                    .update(SPREADSHEET_ID, range, bodyToWrite)  // Указываем ID таблицы, диапазон и данные
-                    .setValueInputOption("RAW")  // RAW - записываем данные как есть, без форматирования
+                    .update(SPREADSHEET_ID, range, bodyToWrite)
+                    .setValueInputOption("USER_ENTERED")
                     .execute();
         }
         catch (Exception ex)
@@ -67,6 +69,35 @@ public class GoogleSheetService
         }
     }
 
+    private List<List<Object>> replaceDataWithFormula(String range,
+                                                      List<List<Object>> data)
+    {
+        List<List<Object>> tableDataToCheck = getAllTableFormulas(range);
+        List<List<Object>> valuesToWrite = new ArrayList<>();
+        for (int i = 0 ; i < data.size(); i++)
+        {
+            List<Object> rowToWrite = new ArrayList<>();
+            for(int j = 0; j < data.get(i).size(); j++)
+            {
+                if (isCellFormula(tableDataToCheck.get(i).get(j)))
+                {
+                    rowToWrite.add(tableDataToCheck.get(i).get(j));
+                }
+                else
+                {
+                    rowToWrite.add(data.get(i).get(j));
+                }
+            }
+            valuesToWrite.add(rowToWrite);
+        }
+        return valuesToWrite;
+    }
+
+    private boolean isCellFormula(Object cellValue)
+    {
+        return cellValue.toString().startsWith("=");
+    }
+
     public Object getCell(String range)
     {
         return getRow(range,0).get(0);
@@ -75,6 +106,24 @@ public class GoogleSheetService
     public List<Object> getRow(String range, int row)
     {
         return getAllTable(range).get(row);
+    }
+
+    public List<List<Object>> getAllTableFormulas(String range)
+    {
+        try
+        {
+            ValueRange response = sheetsService.spreadsheets().values()
+                    .get(SPREADSHEET_ID, range)
+                    .setValueRenderOption("FORMULA")
+                    .execute();
+            return response.getValues();
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+            log.error(ex.getMessage());
+            throw new RuntimeException(ex);
+        }
     }
 
     public List<List<Object>> getAllTable(String range)

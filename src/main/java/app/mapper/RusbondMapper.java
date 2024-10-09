@@ -20,6 +20,16 @@ public class RusbondMapper
                 .asInt();
     }
 
+    public static String isin(JsonNode json)
+    {
+        return json
+                .path("entities")
+                .get(0)
+                .path("instrumentData")
+                .path("isin")
+                .asText();
+    }
+
     public static int issuerId(JsonNode json)
     {
         return json
