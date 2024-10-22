@@ -1,5 +1,6 @@
 package service;
 
+import app.mapper.BondMapper;
 import app.model.Bond;
 import app.service.BondSheetService;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,12 @@ public class BondSheetServiceIT
         //then
 
         //expect
+        assertFalse(bonds.isEmpty());
         assertEquals(bonds.size(), 28);
+        for (Bond bond : bonds)
+        {
+            System.out.println(bond.getIsin() + " " + bond.getAction());
+        }
     }
 
     @Test
@@ -150,6 +156,20 @@ public class BondSheetServiceIT
         bondToCheck.setIsin("");
         bondSheetService.writeBond(bondToCheck);
         //expected
+    }
+
+    @Test
+    void getPureRatingBond()
+    {
+        //given
+        List<Bond> bonds = bondSheetService.getAll();
+        //then
+
+        //expected
+        for (Bond bond : bonds)
+        {
+            System.out.println(bond.getIsin() + " " + BondMapper.pureRating(bond.getRating()));
+        }
     }
 
 }

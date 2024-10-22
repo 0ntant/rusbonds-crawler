@@ -33,7 +33,7 @@ public class Bond
     String rating;
     String activity;
     LocalDate sysModifyDate;
-    String action;
+    Integer action;
 
     @Override
     public boolean equals(Object o)

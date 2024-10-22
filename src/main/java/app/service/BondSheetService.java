@@ -25,7 +25,14 @@ public class BondSheetService
     {
         this.googleSheetService = new GoogleSheetService();
         int maxRow = getMaxRow();
-        this.range = String.format(rangeTemplate, sheetName, rowOffset,maxRow);
+        this.range = String.format(rangeTemplate, sheetName, rowOffset, maxRow);
+    }
+
+    public BondSheetService(GoogleSheetService googleSheetService)
+    {
+        this.googleSheetService = googleSheetService;
+        int maxRow = getMaxRow();
+        this.range = String.format(rangeTemplate, sheetName, rowOffset, maxRow);
     }
 
     public List<Bond> getAll()

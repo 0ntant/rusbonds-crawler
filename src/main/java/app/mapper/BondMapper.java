@@ -34,7 +34,8 @@ public class BondMapper {
                 bond.getCount(),
                 bond.getRating(),
                 bond.getActivity(),
-                sysModifyDateStr
+                sysModifyDateStr,
+                bond.getAction()
         );
     }
 
@@ -61,6 +62,7 @@ public class BondMapper {
                 .rating((String) bond.get(16))
                 .activity((String) bond.get(17))
                 .sysModifyDate(objectToLocalDate(bond.get(18)))
+                .action(objectToInteger(bond.get(19)))
                 .build();
     }
 
@@ -114,5 +116,10 @@ public class BondMapper {
     public static LocalDate modDateMap(Object modifyDate)
     {
         return LocalDate.parse(modifyDate.toString(), formatter);
+    }
+
+    public static String pureRating(String rating)
+    {
+        return rating.replaceAll("[^AB+-]", "");
     }
 }

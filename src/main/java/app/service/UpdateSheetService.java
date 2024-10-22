@@ -2,12 +2,16 @@ package app.service;
 
 import app.exception.InvalidIsinException;
 import app.integration.docker.ClientChromeDocker;
+import app.mapper.AccountingPolicyMapper;
+import app.mapper.BondMapper;
 import app.model.Bond;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 @Slf4j
@@ -17,18 +21,22 @@ public class UpdateSheetService
     BondSheetService bondSheetServ;
     SelRusbondsServiceProxy selRusbondsSer;
     ClientChromeDocker clientChromeDocker;
-
-    int waitMinutesPerUpdates = 0;
+    Map<String, Integer> accPolicesHash;
+    int waitMinutesPerUpdates = 10;
 
     public UpdateSheetService()
     {
+        GoogleSheetService googleSheetService = new GoogleSheetService();
+        AccountingPolicySheetService accServ = new AccountingPolicySheetService(googleSheetService);
+
+        bondSheetServ = new BondSheetService(googleSheetService);
+        accPolicesHash = accServ.getAllHash();
         clientChromeDocker = new ClientChromeDocker();
-        bondSheetServ = new BondSheetService();
         rusbondsServ = new RusbondsService();
         selRusbondsSer = new SelRusbondsServiceProxy();
     }
 
-    public void startUpdate()
+    public void startUpdateCycle()
     {
         Random rand = new Random();
         try
@@ -39,23 +47,28 @@ public class UpdateSheetService
         catch (Exception ex)
         {
             ex.printStackTrace();
-            waitMinutesPerUpdates=rand.nextInt(15, 40);
-            log.warn(
-                    "Bonds update process interrupt = {}, wait minutes={} before continue update",
-                    ex.getMessage(),
-                    waitMinutesPerUpdates
-            );
-            waitMinutes(waitMinutesPerUpdates);
-            startUpdate();
-        }
-        finally
-        {
             selRusbondsSer.closeSession();
+            waitMinutesPerUpdates=rand.nextInt(5, 30);
+            log.warn(
+                    "Wait minutes={} before continue update, bonds update process interrupt = {}",
+                    waitMinutesPerUpdates,
+                    ex.getMessage()
+            );
+            selRusbondsSer.closeSession();
+            startUpdateCycle();
         }
+
+        selRusbondsSer.closeSession();
         selRusbondsSer.stopProxy();
 
         List<Bond> bonds = bondSheetServ.getAll();
         bondSheetServ.writeBonds(bonds);
+    }
+
+    private void prepareKeys()
+    {
+        selRusbondsSer.createAuthSession();
+        rusbondsServ = new RusbondsService(selRusbondsSer.getRusbondsCred());
     }
 
     public void updateProcess()
@@ -79,21 +92,30 @@ public class UpdateSheetService
         saveUpdate();
     }
 
-    private void prepareKeys()
-    {
-        selRusbondsSer.createAuthSession();
-        rusbondsServ = new RusbondsService(selRusbondsSer.getRusbondsCred());
-    }
-
     public boolean isNeedUpdate()
     {
         LocalDate localDate = LocalDate.now();
-        return !localDate.isEqual(bondSheetServ.getModifyDate());
+
+        if (localDate.getDayOfWeek().equals(DayOfWeek.SATURDAY)
+            || localDate.getDayOfWeek().equals(DayOfWeek.SUNDAY)
+        )
+        {
+            log.warn("Today is {}", localDate.getDayOfWeek());
+            return false;
+        }
+
+        if (localDate.isEqual(bondSheetServ.getModifyDate()))
+        {
+            log.warn("Bond already updated today");
+            return false;
+        }
+
+        return true;
     }
 
     private void updateBond(Bond bond)
     {
-        int findtoolId = 0;
+        int findtoolId;
         try
         {
             findtoolId = rusbondsServ.getFintoolId(bond);
@@ -107,9 +129,11 @@ public class UpdateSheetService
             saveUpdateBond(bond);
             return;
         }
-        int issuerId = rusbondsServ.getIssuerId(findtoolId);
+
         updateMarketValueNow(bond, findtoolId);
         updateRating(bond, findtoolId);
+        updateAction(bond);
+
         saveUpdateBond(bond);
     }
 
@@ -154,6 +178,20 @@ public class UpdateSheetService
         bondSheetServ.writeModifyDate();
     }
 
+    private void updateMarketValueNow(Bond bond, int issuerId)
+    {
+        double newMarketValueNow = rusbondsServ.getMarketValueNow(issuerId);
+        if(newMarketValueNow != bond.getMarketValueNow())
+        {
+            log.info("Bond ISIN={} last MarketValueNow={} new MarketValueNow={}",
+                    bond.getIsin(),
+                    bond.getMarketValueNow(),
+                    newMarketValueNow
+            );
+            bond.setMarketValueNow(newMarketValueNow);
+        }
+    }
+
     private void updateRating(Bond bond, int findtoolId)
     {
       //  String newRating = rusbondsServ.getRating(issuerId);
@@ -169,19 +207,23 @@ public class UpdateSheetService
         }
     }
 
-    private void updateMarketValueNow(Bond bond, int issuerId)
+    private void updateAction(Bond bond)
     {
-        double newMarketValueNow = rusbondsServ.getMarketValueNow(issuerId);
-        if(newMarketValueNow != bond.getMarketValueNow())
+        String rating = BondMapper.pureRating(bond.getRating());
+        int newAction = accPolicesHash.get(rating) - bond.getCount();
+        if (newAction != bond.getAction())
         {
-            log.info("Bond ISIN={} last MarketValueNow={} new MarketValueNow={}",
+            log.info("Bond ISIN={} last action={} new action={}",
                     bond.getIsin(),
-                    bond.getMarketValueNow(),
-                    newMarketValueNow
+                    bond.getAction(),
+                    newAction
+
             );
-            bond.setMarketValueNow(newMarketValueNow);
+
+            bond.setAction(newAction);
         }
     }
+
 
     private void waitMinutes(int minutes)
     {

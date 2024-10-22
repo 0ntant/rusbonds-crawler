@@ -7,6 +7,6 @@ public class UpdateDataAlg
     public static void start()
     {
         UpdateSheetService updateSheetService = new UpdateSheetService();
-        updateSheetService.startUpdate();
+        updateSheetService.startUpdateCycle();
     }
 }
