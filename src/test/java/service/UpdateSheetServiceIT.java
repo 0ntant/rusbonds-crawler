@@ -1,9 +1,13 @@
 package service;
 
+import app.mapper.BondMapper;
+import app.model.AccountingPolicy;
 import app.model.Bond;
 import app.service.BondSheetService;
 import app.service.UpdateSheetService;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 
@@ -36,5 +40,49 @@ public class UpdateSheetServiceIT
         bond.setIsin("");
         updateSheetSrv.saveUpdateBond(bond);
         //expected
+    }
+
+    @Test
+    void multipleRating()
+    {
+        //given
+        String multiRating = "ruB+/BB-.ru";
+        String usualRating = "BB(RU)";
+        //then
+
+        //expected
+        assertEquals(2, multiRating.split("/").length);
+        assertEquals("B+", BondMapper.pureRating(multiRating.split("/")[0]));
+        assertEquals("BB-",  BondMapper.pureRating(multiRating.split("/")[1]));
+
+
+        assertEquals(1, usualRating.split("/").length);
+        assertEquals(usualRating, usualRating.split("/")[0]);
+    }
+
+
+    @Test
+    void getLowestRating_BB()
+    {
+        //given
+        List<String> ratings = List.of("A+", "BB", "AA", "BBB-");
+
+        //then
+        String lowestRating = updateSheetSrv.getLowestRating(ratings);
+
+        //expected
+        assertEquals("BB", lowestRating);
+    }
+
+    @Test
+    void getLotCount_byRatingTitle()
+    {
+        //given
+        String rating = "A+";
+
+        //then
+        int lotCount = updateSheetSrv.getAccRatingLotCount(rating);
+        //expected
+        assertEquals(40, lotCount);
     }
 }

@@ -4,15 +4,13 @@ import app.exception.InvalidIsinException;
 import app.integration.docker.ClientChromeDocker;
 import app.mapper.AccountingPolicyMapper;
 import app.mapper.BondMapper;
+import app.model.AccountingPolicy;
 import app.model.Bond;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 @Slf4j
 public class UpdateSheetService
@@ -21,8 +19,7 @@ public class UpdateSheetService
     BondSheetService bondSheetServ;
     SelRusbondsServiceProxy selRusbondsSer;
     ClientChromeDocker clientChromeDocker;
-    Map<String, Integer> accPolicesHash;
-    int waitMinutesPerUpdates = 10;
+    List<AccountingPolicy> accPolices;
 
     public UpdateSheetService()
     {
@@ -30,7 +27,7 @@ public class UpdateSheetService
         AccountingPolicySheetService accServ = new AccountingPolicySheetService(googleSheetService);
 
         bondSheetServ = new BondSheetService(googleSheetService);
-        accPolicesHash = accServ.getAllHash();
+        accPolices = accServ.getAll();
         clientChromeDocker = new ClientChromeDocker();
         rusbondsServ = new RusbondsService();
         selRusbondsSer = new SelRusbondsServiceProxy();
@@ -48,13 +45,14 @@ public class UpdateSheetService
         {
             ex.printStackTrace();
             selRusbondsSer.closeSession();
-            waitMinutesPerUpdates=rand.nextInt(5, 30);
+            int waitMinutesPerUpdates=rand.nextInt(5, 30);
             log.warn(
                     "Wait minutes={} before continue update, bonds update process interrupt = {}",
                     waitMinutesPerUpdates,
                     ex.getMessage()
             );
             selRusbondsSer.closeSession();
+            waitMinutes(waitMinutesPerUpdates);
             startUpdateCycle();
         }
 
@@ -106,7 +104,7 @@ public class UpdateSheetService
 
         if (localDate.isEqual(bondSheetServ.getModifyDate()))
         {
-            log.warn("Bond already updated today");
+            log.warn("Bonds already updated today");
             return false;
         }
 
@@ -194,7 +192,6 @@ public class UpdateSheetService
 
     private void updateRating(Bond bond, int findtoolId)
     {
-      //  String newRating = rusbondsServ.getRating(issuerId);
         String newRating = selRusbondsSer.getBondRating(findtoolId);
         if(!newRating.equals(bond.getRating()))
         {
@@ -209,21 +206,76 @@ public class UpdateSheetService
 
     private void updateAction(Bond bond)
     {
-        String rating = BondMapper.pureRating(bond.getRating());
-        int newAction = accPolicesHash.get(rating) - bond.getCount();
+        String pureRating;
+
+        if (BondMapper.isRatingMultiple(bond.getRating()))
+        {
+            log.info("Bond ISIN={} has a multiple rating", bond.getIsin());
+            pureRating = getLowestRating(BondMapper.getPureRatings(bond.getRating()));
+        }
+        else
+        {
+            pureRating = BondMapper.pureRating(bond.getRating());
+        }
+
+        int newAction = getAccRatingLotCount(pureRating) - bond.getCount();
+
         if (newAction != bond.getAction())
         {
             log.info("Bond ISIN={} last action={} new action={}",
                     bond.getIsin(),
                     bond.getAction(),
                     newAction
-
             );
 
             bond.setAction(newAction);
         }
     }
 
+//    private boolean isRatingMultiple(String rating)
+//    {
+//        return getPureRatings(rating).size() > 1;
+//    }
+//
+//    private List<String> getPureRatings(String ratings)
+//    {
+//        return Arrays
+//                .stream(ratings.split("/"))
+//                .map(BondMapper::pureRating)
+//                .toList();
+//    }
+
+    public String getLowestRating(List<String> ratingList)
+    {
+        int indexOfMinRating = ratingList.stream()
+                .map(rating -> accPolices
+                        .stream()
+                        .filter(accountingPolicy -> accountingPolicy.getCompanyRating().equals(rating))
+                        .findFirst()
+                        .orElseThrow(() -> new NoSuchElementException(
+                                "No such AccountingPolicy rating=%s".formatted(rating)
+                                )
+                        )
+                )
+                .map(accPolicy -> accPolices.indexOf(accPolicy))
+                .min(Integer::compareTo)
+                .orElseThrow(
+                        () -> new NoSuchElementException("Can't find min rating")
+                );
+
+        return accPolices.get(indexOfMinRating).getCompanyRating();
+    }
+
+    public int getAccRatingLotCount(String companyRating)
+    {
+        return accPolices.stream()
+                .filter(acc -> acc.getCompanyRating().equals(companyRating))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException(
+                        "No such AccountingPolicy=%s".formatted(companyRating))
+                )
+                .getLotCount();
+    }
 
     private void waitMinutes(int minutes)
     {

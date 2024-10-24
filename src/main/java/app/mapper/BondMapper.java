@@ -4,6 +4,7 @@ import app.model.Bond;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 
 public class BondMapper {
@@ -116,6 +117,19 @@ public class BondMapper {
     public static LocalDate modDateMap(Object modifyDate)
     {
         return LocalDate.parse(modifyDate.toString(), formatter);
+    }
+
+    public static boolean isRatingMultiple(String rating)
+    {
+        return getPureRatings(rating).size() > 1;
+    }
+
+    public static List<String> getPureRatings(String ratings)
+    {
+        return Arrays
+                .stream(ratings.split("/"))
+                .map(BondMapper::pureRating)
+                .toList();
     }
 
     public static String pureRating(String rating)

@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 public class AccountingPolicySheetServiceIT
 {
@@ -20,7 +22,7 @@ public class AccountingPolicySheetServiceIT
         List<AccountingPolicy> accountingPoliciesTable = accountingPolicySheetServ.getAll();
 
         //expected
-        assertTrue(!accountingPoliciesTable.isEmpty());
+        assertFalse(accountingPoliciesTable.isEmpty());
         assertEquals(accountingPoliciesTable.size(), 18);
 
         for(AccountingPolicy accountingPolicy : accountingPoliciesTable)
@@ -30,4 +32,31 @@ public class AccountingPolicySheetServiceIT
                     + accountingPolicy.getLotCount());
         }
     }
+
+    @Test
+    void getAllAccountingPolicies_numericIndex()
+    {
+        //given
+        List<AccountingPolicy> accPolicies = accountingPolicySheetServ.getAll() ;
+        String rating = "BB+";
+        String anotherRating = "AA";
+        //then
+        AccountingPolicy accountingPolicy = accPolicies
+                .stream()
+                .filter(i -> i.getCompanyRating().equals(rating))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("error"));
+
+        AccountingPolicy anotherAccountingPolicy = accPolicies
+                .stream()
+                .filter(i -> i.getCompanyRating().equals(anotherRating))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("error"));
+
+        //expected
+        assertTrue(accPolicies.indexOf(accountingPolicy) > 0) ;
+        assertTrue(accPolicies.indexOf(anotherAccountingPolicy) > accPolicies.indexOf(accountingPolicy) ) ;
+    }
+
+
 }
