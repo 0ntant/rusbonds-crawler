@@ -1,14 +1,18 @@
 package app.integration.rusbonds;
 
-import app.integration.dto.output.HintDto;
-import app.integration.dto.output.RusbonCredDto;
+import app.exception.InvalidRusbondResponseException;
+import app.integration.rusbonds.dto.HintDto;
+import app.integration.rusbonds.dto.RusbonCredDto;
 import app.mapper.RusbondMapper;
 import app.model.RusbondsKeys;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Version;
 import java.net.http.HttpRequest;
@@ -21,6 +25,8 @@ import java.util.Random;
 import static app.config.RusbondsConfig.*;
 
 @Slf4j
+@AllArgsConstructor
+@lombok.Builder
 public class RusbondsClient
 {
     HttpClient client;
@@ -29,6 +35,7 @@ public class RusbondsClient
     String spid;
     String spsc;
     String userAgent;
+    @lombok.Builder.Default
     JsonMapper jsonMapper = new JsonMapper();
 
     public RusbondsClient()
@@ -37,6 +44,7 @@ public class RusbondsClient
         this.spid = COOKIE_SPID;
         this.spsc = COOKIE_SPSC;
         this.userAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
+        this.jsonMapper = new JsonMapper();
     }
 
     public RusbondsClient(RusbondsKeys rusbondsKeys)
@@ -68,11 +76,11 @@ public class RusbondsClient
                     .POST(BodyPublishers.ofString(json))
                     .build();
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-            logResponse(request, response);
+            handleResponse(request, response);
             JsonNode jsonResponse = jsonMapper.readTree(response.body());
             this.accessToken = String.format("Bearer %s", RusbondMapper.accessToken(jsonResponse));
         }
-        catch (Exception ex)
+        catch (IOException | InterruptedException| URISyntaxException ex)
         {
             ex.printStackTrace();
             log.error(ex.getMessage());
@@ -98,12 +106,10 @@ public class RusbondsClient
                     .POST(BodyPublishers.ofString(json))
                     .build();
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-            logResponse(request, response);
-           // JsonNode jsonResponse = jsonMapper.readTree(response.body());
-           // return RusbondMapper.fintoolId(jsonResponse);
+            handleResponse(request, response);
             return jsonMapper.readTree(response.body());
         }
-        catch (Exception ex)
+        catch (IOException | InterruptedException| URISyntaxException ex)
         {
             ex.printStackTrace();
             log.error(ex.getMessage());
@@ -124,12 +130,10 @@ public class RusbondsClient
                     .GET()
                     .build();
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-            logResponse(request, response);
-            //JsonNode jsonResponse = jsonMapper.readTree(response.body());
-           // return RusbondMapper.issuerId(jsonResponse);
+            handleResponse(request, response);
             return jsonMapper.readTree(response.body());
         }
-        catch (Exception ex)
+        catch (IOException | InterruptedException| URISyntaxException ex)
         {
             ex.printStackTrace();
             log.error(ex.getMessage());
@@ -150,12 +154,10 @@ public class RusbondsClient
                     .GET()
                     .build();
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-            logResponse(request, response);
-           // JsonNode responseJson = jsonMapper.readTree(response.body());
-           //  return RusbondMapper.marketValueNow(responseJson);
+            handleResponse(request, response);
             return jsonMapper.readTree(response.body());
         }
-        catch (Exception ex)
+        catch (IOException | InterruptedException| URISyntaxException ex)
         {
             ex.printStackTrace();
             log.error(ex.getMessage());
@@ -190,13 +192,11 @@ public class RusbondsClient
                     .build();
             executeEmptyRequests(issuerId);
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-            logResponse(request, response);
-           // JsonNode responseJson = jsonMapper.readTree(response.body());
-           // return RusbondMapper.ratingRu(responseJson);
+            handleResponse(request, response);
 
             return jsonMapper.readTree(response.body());
         }
-        catch (Exception ex)
+        catch (IOException | InterruptedException| URISyntaxException ex)
         {
             ex.printStackTrace();
             log.error(ex.getMessage());
@@ -214,9 +214,9 @@ public class RusbondsClient
                     .uri(new URI(url))
                     .GET()
                     .build();
-            HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+            client.send(request, BodyHandlers.ofString());
         }
-        catch (Exception ex)
+        catch (IOException | InterruptedException| URISyntaxException ex)
         {
             ex.printStackTrace();
             log.error(ex.getMessage());
@@ -224,10 +224,27 @@ public class RusbondsClient
         }
     }
 
-    private void logResponse(
-            HttpRequest request,
-            HttpResponse<String> response
-    )
+    private void handleResponse (HttpRequest request,
+                                 HttpResponse<String> response)
+    {
+        if (response.statusCode() != 200)
+        {
+            log.error("[{}] {} | ResponseCode: {} Body: {}",
+                    request.method(),
+                    request.uri(),
+                    response.statusCode(),
+                    response.body()
+            );
+            throw new InvalidRusbondResponseException(
+                    String.format("INVALID_RESPONSE_CODE %s",
+                    response.statusCode())
+            );
+        }
+        logResponse(request, response);
+    }
+
+    private void logResponse(HttpRequest request,
+                             HttpResponse<String> response)
     {
         log.info("[{}] {} | ResponseCode: {}",
                 request.method(),

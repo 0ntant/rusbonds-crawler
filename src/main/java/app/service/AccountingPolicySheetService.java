@@ -52,7 +52,7 @@ public class AccountingPolicySheetService
     public List<AccountingPolicy> getAll()
     {
         List<AccountingPolicy> bonds = new ArrayList<>();
-        List<List<Object>> objects = googleSheetService.getAllTable(range);
+        List<List<Object>> objects = googleSheetService.getAllTableValues(range);
         for(List<Object> objects1 : objects)
         {
             bonds.add(AccountingPolicyMapper.map(objects1));

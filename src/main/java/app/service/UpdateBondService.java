@@ -1,11 +1,11 @@
 package app.service;
 
 import app.exception.InvalidIsinException;
-import app.integration.docker.ClientChromeDocker;
-import app.mapper.AccountingPolicyMapper;
 import app.mapper.BondMapper;
 import app.model.AccountingPolicy;
 import app.model.Bond;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.DayOfWeek;
@@ -13,27 +13,46 @@ import java.time.LocalDate;
 import java.util.*;
 
 @Slf4j
-public class UpdateSheetService
+@AllArgsConstructor
+@Builder
+public class UpdateBondService
 {
     RusbondsService rusbondsServ;
-    BondSheetService bondSheetServ;
+    BondService bondServ;
     SelRusbondsServiceProxy selRusbondsSer;
-    ClientChromeDocker clientChromeDocker;
     List<AccountingPolicy> accPolices;
+    AccountingPolicySheetService accServ;
 
-    public UpdateSheetService()
+    public UpdateBondService()
     {
-        GoogleSheetService googleSheetService = new GoogleSheetService();
-        AccountingPolicySheetService accServ = new AccountingPolicySheetService(googleSheetService);
-
-        bondSheetServ = new BondSheetService(googleSheetService);
-        accPolices = accServ.getAll();
-        clientChromeDocker = new ClientChromeDocker();
-        rusbondsServ = new RusbondsService();
-        selRusbondsSer = new SelRusbondsServiceProxy();
+       GoogleSheetService googleSheetService =  new GoogleSheetService();
+        rusbondsServ = new RusbondsServiceImp();
+        selRusbondsSer = new SelRusbondsServiceProxyImp();
+        bondServ = new BondSheetService(googleSheetService);
+        accServ = new AccountingPolicySheetService(googleSheetService);
     }
 
-    public void startUpdateCycle()
+    public void startUpdateProcess()
+    {
+        if (!isNeedUpdate())
+        {
+            log.warn("Update not needed");
+            return;
+        }
+        prepareUpdateProcess();
+        log.info("Start update process");
+        startUpdateCycle();
+    }
+
+    private void prepareUpdateProcess()
+    {
+        log.info("Prepared data before update");
+//        AccountingPolicySheetService accServ
+//                = new AccountingPolicySheetService(googleSheetService);
+        accPolices = accServ.getAll();
+    }
+
+    private void startUpdateCycle()
     {
         Random rand = new Random();
         try
@@ -45,7 +64,7 @@ public class UpdateSheetService
         {
             ex.printStackTrace();
             selRusbondsSer.closeSession();
-            int waitMinutesPerUpdates=rand.nextInt(5, 30);
+            int waitMinutesPerUpdates=rand.nextInt(5, 15);
             log.warn(
                     "Wait minutes={} before continue update, bonds update process interrupt = {}",
                     waitMinutesPerUpdates,
@@ -58,25 +77,19 @@ public class UpdateSheetService
 
         selRusbondsSer.closeSession();
         selRusbondsSer.stopProxy();
-
-        List<Bond> bonds = bondSheetServ.getAll();
-        bondSheetServ.writeBonds(bonds);
     }
 
     private void prepareKeys()
     {
         selRusbondsSer.createAuthSession();
-        rusbondsServ = new RusbondsService(selRusbondsSer.getRusbondsCred());
+      //  rusbondsServ = new RusbondsServiceImp(selRusbondsSer.getRusbondsCred());
+        rusbondsServ.setRusbondsKeys(selRusbondsSer.getRusbondsCred());
     }
 
     public void updateProcess()
     {
         rusbondsServ.login();
-        if (!isNeedUpdate())
-        {
-            log.warn("Update not needed");
-            return;
-        }
+
         List<Bond> bondsToUpdate = getBondsToUpdate();
         log.info("Bonds to update={}", bondsToUpdate.size());
         for(Bond bond : bondsToUpdate)
@@ -102,7 +115,7 @@ public class UpdateSheetService
             return false;
         }
 
-        if (localDate.isEqual(bondSheetServ.getModifyDate()))
+        if (localDate.isEqual(bondServ.getModifyDate()))
         {
             log.warn("Bonds already updated today");
             return false;
@@ -131,6 +144,7 @@ public class UpdateSheetService
         updateMarketValueNow(bond, findtoolId);
         updateRating(bond, findtoolId);
         updateAction(bond);
+        updateCompTicketLiveTimeYear(bond);
 
         saveUpdateBond(bond);
     }
@@ -138,7 +152,7 @@ public class UpdateSheetService
     public List<Bond> getBondsToUpdate()
     {
         List<Bond> bondsToUpdate = new ArrayList<>();
-        for(Bond bond : bondSheetServ.getAll())
+        for(Bond bond : bondServ.getBondsToUpdate())
         {
             if (bondNeedUpdate(bond))
             {
@@ -166,14 +180,30 @@ public class UpdateSheetService
     {
         log.info("Save updated bond ISIN={}", bond.getIsin());
         bond.setSysModifyDate(LocalDate.now());
-        bondSheetServ.writeBond(bond);
+        bondServ.writeBond(bond);
     }
 
     private void saveUpdate()
     {
         log.info("Bonds successfully updated");
-        bondSheetServ.exportData();
-        bondSheetServ.writeModifyDate();
+        bondServ.exportData();
+        bondServ.writeModifyDate();
+    }
+
+    private void updateCompTicketLiveTimeYear(Bond bond)
+    {
+        Double lastValue = bond.getTicketLiveTimeYear();
+        bond.setCompTicketLiveTimeYear();
+        Double newValue = bond.getTicketLiveTimeYear();
+
+        if(lastValue != newValue)
+        {
+            log.info("Bond ISIN={} last TicketLiveTimeYear={} new TicketLiveTimeYear={}",
+                    bond.getIsin(),
+                    lastValue,
+                    newValue
+            );
+        }
     }
 
     private void updateMarketValueNow(Bond bond, int issuerId)
@@ -193,6 +223,17 @@ public class UpdateSheetService
     private void updateRating(Bond bond, int findtoolId)
     {
         String newRating = selRusbondsSer.getBondRating(findtoolId);
+
+        if (newRating == null
+                || newRating.contains("null")
+                || newRating.isEmpty()
+                || newRating.isBlank()
+        )
+        {
+            log.info("Bond ISIN={} NO_RATING", bond.getIsin());
+            newRating = "-";
+        }
+
         if(!newRating.equals(bond.getRating()))
         {
             log.info("Bond ISIN={} last rating={} new rating={}",
@@ -207,43 +248,35 @@ public class UpdateSheetService
     private void updateAction(Bond bond)
     {
         String pureRating;
+        String bondRating = bond.getRating();
 
-        if (BondMapper.isRatingMultiple(bond.getRating()))
+        if (BondMapper.isRatingMultiple(bondRating))
         {
             log.info("Bond ISIN={} has a multiple rating", bond.getIsin());
-            pureRating = getLowestRating(BondMapper.getPureRatings(bond.getRating()));
+            pureRating = getLowestRating(BondMapper.getPureRatings(bondRating));
         }
         else
         {
-            pureRating = BondMapper.pureRating(bond.getRating());
+            pureRating = BondMapper.pureRating(bondRating);
         }
 
-        int newAction = getAccRatingLotCount(pureRating) - bond.getCount();
+        String newAction = String.valueOf(getAccRatingLotCount(pureRating) - bond.getCount());
 
-        if (newAction != bond.getAction())
+        if(pureRating.contains("C") || pureRating.contains("D"))
+        {
+            newAction = "Срочно продать";
+        }
+
+        if (!newAction.equals(bond.getAction()))
         {
             log.info("Bond ISIN={} last action={} new action={}",
                     bond.getIsin(),
                     bond.getAction(),
                     newAction
             );
-
             bond.setAction(newAction);
         }
     }
-
-//    private boolean isRatingMultiple(String rating)
-//    {
-//        return getPureRatings(rating).size() > 1;
-//    }
-//
-//    private List<String> getPureRatings(String ratings)
-//    {
-//        return Arrays
-//                .stream(ratings.split("/"))
-//                .map(BondMapper::pureRating)
-//                .toList();
-//    }
 
     public String getLowestRating(List<String> ratingList)
     {
@@ -277,7 +310,7 @@ public class UpdateSheetService
                 .getLotCount();
     }
 
-    private void waitMinutes(int minutes)
+    public void waitMinutes(int minutes)
     {
         synchronized (Thread.currentThread())
         {

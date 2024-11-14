@@ -9,10 +9,7 @@ import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.*;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -105,7 +102,7 @@ public class GoogleSheetService
 
     public List<Object> getRow(String range, int row)
     {
-        return getAllTable(range).get(row);
+        return getAllTableValues(range).get(row);
     }
 
     public List<List<Object>> getAllTableFormulas(String range)
@@ -126,7 +123,7 @@ public class GoogleSheetService
         }
     }
 
-    public List<List<Object>> getAllTable(String range)
+    public List<List<Object>> getAllTableValues(String range)
     {
         try
         {
@@ -151,9 +148,9 @@ public class GoogleSheetService
                     .get(SPREADSHEET_ID, range)
                     .execute();
             List<List<Object>> values = response.getValues();
-
             return (values == null || values.isEmpty()) ? 1 : values.size() + 1;
-        }catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             ex.printStackTrace();
             log.error(ex.getMessage());
@@ -259,7 +256,7 @@ public class GoogleSheetService
         }
     }
 
-    private int columnLetterToIndex(String letter) {
+    protected int columnLetterToIndex(String letter) {
         int index = 0;
         for (char c : letter.toCharArray()) {
             index = index * 26 + (c - 'A' + 1);

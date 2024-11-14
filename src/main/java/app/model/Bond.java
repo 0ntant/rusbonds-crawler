@@ -5,8 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Objects;
+
+import static java.time.temporal.ChronoUnit.DAYS;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -32,8 +36,9 @@ public class Bond
     Integer count;
     String rating;
     String activity;
+    String action;
+    String broker;
     LocalDate sysModifyDate;
-    Integer action;
 
     @Override
     public boolean equals(Object o)
@@ -43,5 +48,14 @@ public class Bond
         Bond bond = (Bond) o;
         return Objects.equals(issuerName, bond.issuerName)
                 && Objects.equals(paperName, bond.paperName) ;
+    }
+
+    public void setCompTicketLiveTimeYear()
+    {
+        ticketLiveTimeYear =
+                new BigDecimal(DAYS.between(ticketExpirationDate, LocalDate.now()))
+                        .abs()
+                        .divide(BigDecimal.valueOf(365), 2, RoundingMode.HALF_EVEN)
+                        .doubleValue();
     }
 }

@@ -2,21 +2,124 @@ package service;
 
 import app.mapper.BondMapper;
 import app.model.Bond;
+import app.service.BondService;
 import app.service.BondSheetService;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 
 public class BondSheetServiceIT
 {
-    BondSheetService bondSheetService = new BondSheetService();
+    BondService bondService = new BondSheetService("TestData");
+
+
+//    @Test
+//    void getDataCells()
+//    {
+//        //given
+//        List<List<DataCell>> dataCells = bondSheetService.getDataCells();
+//        //then
+//
+//        //expected
+//        for(int i = 0; i < 5 ; i++)
+//        {
+//            List<DataCell> dataCells1 = dataCells.get(i);
+//            for (int j = 0; j < 10 ; j++)
+//            {
+//                System.out.printf("%s %s %s %s",
+//                        dataCells1.get(j).getValue(),
+//                        dataCells1.get(j).getNote(),
+//                        dataCells1.get(j).getCellColor(),
+//                        dataCells1.get(j).getFormula()
+//                );
+//                System.out.println();
+//            }
+//        }
+//    }
+
+    @Test
+    void rewrite_Bond()
+    {
+        //given
+        Bond bond = bondService.getBond(6);
+        //then
+        //expected
+        bondService.writeBond(bond);
+    }
+
+    @Test
+    void getLastBond_fromAllBond()
+    {
+        //given
+        List<Bond> bonds = bondService.getAll();
+
+        //then
+        //expected
+        assertEquals("RU000A104JV3", bonds.get(bonds.size()-1).getIsin());
+    }
+
+    @Test
+    void rewrite_setCompTicketLiveTimeYear()
+    {
+        //given
+        Bond bond = bondService.getBond(0);
+        System.out.println(bond.getTicketLiveTimeYear());
+        //then
+        bond.setCompTicketLiveTimeYear();
+        //expected
+        System.out.println(bond.getTicketLiveTimeYear());
+        bondService.writeBond(bond);
+    }
+
+    @Test
+    void mapping_withBrokerValues_withNewPositionAction_sysModDate()
+    {
+        //given
+        Bond bond = bondService.getBond(0);
+        //then
+        //expected
+        assertEquals( 1,bond.getAction());
+        assertEquals( "Брокер1",bond.getBroker());
+
+        assertEquals( 1,bond.getSysModifyDate().getDayOfMonth());
+        assertEquals( Month.JANUARY,bond.getSysModifyDate().getMonth());
+        assertEquals( 2023,bond.getSysModifyDate().getYear());
+    }
+
+    @Test
+    void mapping_withVoid()
+    {
+        //given
+        Bond bond = bondService.getBond(1);
+        //then
+        //expected
+        assertEquals( 0,bond.getNumber());
+        assertEquals( 0,bond.getMarketValueNow());
+        assertEquals("", bond.getRating());
+        assertEquals( 0,bond.getAction());
+        assertEquals( "",bond.getBroker());
+        assertEquals(LocalDate.MIN, bond.getSysModifyDate());
+    }
+
+    @Test
+    void mapping_withBigNumericValues()
+    {
+        //given
+        Bond bond = bondService.getBond(2);
+        //then
+        //expected
+    }
+
 
     @Test
     void getAllBonds_checkMappingSysCreateDate_NotNull()
     {
         //given
-        List<Bond> bonds = bondSheetService.getAll();
+        List<Bond> bonds = bondService.getAll();
         //then
         //expected
         assertNotNull(bonds.get(0).getSysModifyDate());
@@ -26,30 +129,30 @@ public class BondSheetServiceIT
     void updateBond_success()
     {
         //given
-        Bond bondToUpdate = bondSheetService.getBond(1);
+        Bond bondToUpdate = bondService.getBond(1);
         //then
         bondToUpdate.setSection("New section");
         bondToUpdate.setPaperName("new Paper name");
         //expected
-        bondSheetService.writeBond(bondToUpdate);
+        bondService.writeBond(bondToUpdate);
     }
 
     @Test
-    void getBondsCount_returnMoreThanZero()
+    void getBondsCount_return29()
     {
         //given
-        int count = bondSheetService.getMaxRow();
+        int count = bondService.getMaxRow();
         //then
 
         //expect
-        assertEquals(count, 28);
+        assertEquals(count, 29);
     }
 
     @Test
     void getAllBounds_returnListMoreThanZero()
     {
         //given
-        List<Bond> bonds = bondSheetService.getAll();
+        List<Bond> bonds = bondService.getAll();
         //then
 
         //expect
@@ -65,7 +168,7 @@ public class BondSheetServiceIT
     void getAllBounds_returnList28()
     {
         //given
-        List<Bond> bonds = bondSheetService.getAll();
+        List<Bond> bonds = bondService.getAll();
         //then
 
         //expect
@@ -76,7 +179,7 @@ public class BondSheetServiceIT
     void getAllBounds_CheckCellData()
     {
         //given
-        Bond bondToCheck = bondSheetService.getBond(0);
+        Bond bondToCheck = bondService.getBond(0);
         //then
         //expect
         System.out.println(bondToCheck.getYieldNow());
@@ -88,18 +191,18 @@ public class BondSheetServiceIT
     void getAllBounds_CheckWriteValueFormula()
     {
         //given
-        Bond bondToCheck = bondSheetService.getBond(0);
-        Bond bondToCheck1 = bondSheetService.getBond(1);
-        Bond bondToCheck2 = bondSheetService.getBond(2);
+        Bond bondToCheck = bondService.getBond(0);
+        Bond bondToCheck1 = bondService.getBond(1);
+        Bond bondToCheck2 = bondService.getBond(2);
 
         bondToCheck.setSection("Tested section");
         bondToCheck1.setSection("Tested section");
         bondToCheck2.setSection("Tested section");
 
         //then
-        bondSheetService.writeBond(bondToCheck);
-        bondSheetService.writeBond(bondToCheck1);
-        bondSheetService.writeBond(bondToCheck2);
+        bondService.writeBond(bondToCheck);
+        bondService.writeBond(bondToCheck1);
+        bondService.writeBond(bondToCheck2);
         //expect
     }
 
@@ -107,17 +210,17 @@ public class BondSheetServiceIT
     void getBonds_checkNumericAndSort()
     {
         //given
-        List<Bond> bonds = bondSheetService.getAll();
+        List<Bond> bonds = bondService.getAll();
         //then
         //expect
-        bondSheetService.writeBonds(bonds);
+        bondService.writeBonds(bonds);
     }
 
     @Test
     void getBond_checkEmptyIsin()
     {
         //given
-        Bond bondToCheck = bondSheetService.getBond(0);
+        Bond bondToCheck = bondService.getBond(0);
         //then
         //expect
         assertEquals(bondToCheck.getIsin(), "");
@@ -127,10 +230,10 @@ public class BondSheetServiceIT
     void checkEmptyIsinBonds_Equals()
     {
         //given
-        Bond bondToCheck = bondSheetService.getBond(0);
-        Bond bondToCheck1 = bondSheetService.getBond(1);
-        Bond bondToCheckCopy =  bondSheetService.getBond(0);
-        Bond bondToCheckCopy1 =  bondSheetService.getBond(1);
+        Bond bondToCheck = bondService.getBond(0);
+        Bond bondToCheck1 = bondService.getBond(1);
+        Bond bondToCheckCopy =  bondService.getBond(0);
+        Bond bondToCheckCopy1 =  bondService.getBond(1);
 
         //then
 
@@ -149,12 +252,12 @@ public class BondSheetServiceIT
     void setEmptyBondIsin()
     {
         //given
-        Bond bondToCheck = bondSheetService.getBond(2);
+        Bond bondToCheck = bondService.getBond(2);
 
         //then
 
         bondToCheck.setIsin("");
-        bondSheetService.writeBond(bondToCheck);
+        bondService.writeBond(bondToCheck);
         //expected
     }
 
@@ -162,7 +265,7 @@ public class BondSheetServiceIT
     void getPureRatingBond()
     {
         //given
-        List<Bond> bonds = bondSheetService.getAll();
+        List<Bond> bonds = bondService.getAll();
         //then
 
         //expected

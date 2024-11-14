@@ -1,20 +1,20 @@
 package service;
 
 import app.mapper.BondMapper;
-import app.model.AccountingPolicy;
 import app.model.Bond;
+import app.service.BondService;
 import app.service.BondSheetService;
-import app.service.UpdateSheetService;
+import app.service.UpdateBondService;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 
-public class UpdateSheetServiceIT
+public class UpdateBondServiceIT
 {
-    UpdateSheetService updateSheetSrv = new UpdateSheetService();
-    BondSheetService bondSheetServ= new BondSheetService();
+    UpdateBondService updateSheetSrv = new UpdateBondService();
+    BondService bondSheetServ = new BondSheetService();
 
     @Test
     void bondsToUpdate_showList()

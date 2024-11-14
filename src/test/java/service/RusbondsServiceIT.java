@@ -3,12 +3,13 @@ package service;
 import app.exception.InvalidIsinException;
 import app.model.Bond;
 import app.service.RusbondsService;
+import app.service.RusbondsServiceImp;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class RusbondsServiceIT
 {
-    RusbondsService rusbondsServ = new RusbondsService();
+    RusbondsService rusbondsServ = new RusbondsServiceImp();
 
     @Test
     void getFintoolId_InvalidIsinException()
@@ -30,12 +31,15 @@ public class RusbondsServiceIT
     void getFintoolId_ValidISIN()
     {
         rusbondsServ.login();
+
         //given
         String validIsin = "RU000A107G22";
         Bond bond = new Bond();
         bond.setIsin(validIsin);
+
         //then
         int fintoolId = rusbondsServ.getFintoolId(bond);
+
         //expected
         assertEquals(fintoolId, 236999);
     }

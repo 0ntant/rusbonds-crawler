@@ -1,20 +1,21 @@
 package model;
 
 import app.model.Bond;
+import app.service.BondService;
 import app.service.BondSheetService;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class BondIT
 {
-    BondSheetService bondSheetService = new BondSheetService();
+    BondService bondService = new BondSheetService();
 
     @Test
     void bondModifyField_checkEquals()
     {
         //given
-        Bond bond1 = bondSheetService.getAll().get(0);
-        Bond bond2 = bondSheetService.getAll().get(0);
+        Bond bond1 = bondService.getAll().get(0);
+        Bond bond2 = bondService.getAll().get(0);
 
         //then
         bond2.setMarketValueNow(111.34);

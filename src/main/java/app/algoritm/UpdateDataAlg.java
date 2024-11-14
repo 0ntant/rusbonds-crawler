@@ -1,12 +1,19 @@
 package app.algoritm;
 
-import app.service.UpdateSheetService;
+import app.service.*;
 
 public class UpdateDataAlg
 {
     public static void start()
     {
-        UpdateSheetService updateSheetService = new UpdateSheetService();
-        updateSheetService.startUpdateCycle();
+        DataCellService dataCellService = new DataCellService();
+        UpdateBondService updateBondService = UpdateBondService.builder()
+                .accServ(new AccountingPolicySheetService(dataCellService))
+                .bondServ(new BondSnapshotService(dataCellService))
+                .rusbondsServ(new RusbondsServiceImp())
+                .selRusbondsSer(new SelRusbondsServiceProxyImp())
+                .build();
+
+        updateBondService.startUpdateProcess();
     }
 }
