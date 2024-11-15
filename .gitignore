@@ -40,6 +40,7 @@ build/
 client_secret_787739668579-k08tm7ikrpurjee2ot0mrqk84212f88n.apps.googleusercontent.com.json
 config.*
 rusbonds-crawler.service
+rusbonds-crawler.timer
 logs/
 dump/
 tokens/

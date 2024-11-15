@@ -6,16 +6,12 @@ import app.service.DataCellService;
 import app.service.UpdateBondService;
 import mock.RusbondsServiceMock;
 import mock.SelRusbondsServiceProxyMock;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 
 

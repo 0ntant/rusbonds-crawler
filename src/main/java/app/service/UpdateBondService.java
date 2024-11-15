@@ -47,8 +47,6 @@ public class UpdateBondService
     private void prepareUpdateProcess()
     {
         log.info("Prepared data before update");
-//        AccountingPolicySheetService accServ
-//                = new AccountingPolicySheetService(googleSheetService);
         accPolices = accServ.getAll();
     }
 
@@ -107,8 +105,8 @@ public class UpdateBondService
     {
         LocalDate localDate = LocalDate.now();
 
-        if (localDate.getDayOfWeek().equals(DayOfWeek.SATURDAY)
-            || localDate.getDayOfWeek().equals(DayOfWeek.SUNDAY)
+        if (localDate.getDayOfWeek().equals(DayOfWeek.SUNDAY)
+            || localDate.getDayOfWeek().equals(DayOfWeek.MONDAY)
         )
         {
             log.warn("Today is {}", localDate.getDayOfWeek());
