@@ -3,10 +3,15 @@ package app.service;
 import app.exception.InvalidIsinException;
 import app.integration.rusbonds.RusbondsClient;
 import app.mapper.RusbondMapper;
+import app.model.BondRepayment;
 import app.model.RusbondsKeys;
 import app.model.Bond;
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
+@Slf4j
 public class RusbondsServiceImp implements RusbondsService
 {
     RusbondsClient client;
@@ -19,6 +24,29 @@ public class RusbondsServiceImp implements RusbondsService
     public RusbondsServiceImp(RusbondsKeys rusbondsKeys)
     {
         client = new RusbondsClient(rusbondsKeys);
+    }
+
+    @Override
+    public List<BondRepayment> getRepayments(int findtoolId)
+    {
+        JsonNode json = client.getCalendarList(
+                findtoolId,
+                "MTY");
+
+        if(json.isEmpty() || json.isNull())
+        {
+            log.warn("findtoolId={}, REPAYMENTS_IS_EMPTY"
+                    ,findtoolId
+            );
+            return List.of();
+        }
+
+        List<BondRepayment>  repayments = RusbondMapper.repayments(json);
+        log.info("findtoolId={},repayments={}"
+                ,findtoolId
+                ,repayments
+        );
+        return repayments;
     }
 
     @Override

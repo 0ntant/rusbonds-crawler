@@ -17,19 +17,29 @@ public class BondSnapshotServiceIT
     void mapDate()
     {
         System.out.println("420/12.5".contains("/"));
+    }
 
+    @Test
+    void getBonds()
+    {
+        //given
+        //then
+        List<Bond> bonds = bondService.getAll();
 
+        //expected
+        System.out.printf(String.valueOf(bonds.get(0)));
     }
 
     @Test
     void getAndWriteBonds()
     {
         //given
-
         List<Bond> bonds = bondService.getAll();
 
         //then
         bondService.writeBonds(bonds);
+
+        //expected
     }
 
     @Test

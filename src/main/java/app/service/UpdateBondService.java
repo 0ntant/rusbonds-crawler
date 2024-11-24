@@ -4,6 +4,7 @@ import app.exception.InvalidIsinException;
 import app.mapper.BondMapper;
 import app.model.AccountingPolicy;
 import app.model.Bond;
+import app.model.BondRepayment;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,7 @@ public class UpdateBondService
 
     public UpdateBondService()
     {
-       GoogleSheetService googleSheetService =  new GoogleSheetService();
+        GoogleSheetService googleSheetService = new GoogleSheetService();
         rusbondsServ = new RusbondsServiceImp();
         selRusbondsSer = new SelRusbondsServiceProxyImp();
         bondServ = new BondSheetService(googleSheetService);
@@ -37,6 +38,7 @@ public class UpdateBondService
         if (!isNeedUpdate())
         {
             log.warn("Update not needed");
+            selRusbondsSer.stopProxy();
             return;
         }
         prepareUpdateProcess();
@@ -64,7 +66,7 @@ public class UpdateBondService
             selRusbondsSer.closeSession();
             int waitMinutesPerUpdates=rand.nextInt(5, 15);
             log.warn(
-                    "Wait minutes={} before continue update, bonds update process interrupt = {}",
+                    "Wait minutes={} before continue update, bonds update process interrupt: {}",
                     waitMinutesPerUpdates,
                     ex.getMessage()
             );
@@ -80,7 +82,6 @@ public class UpdateBondService
     private void prepareKeys()
     {
         selRusbondsSer.createAuthSession();
-      //  rusbondsServ = new RusbondsServiceImp(selRusbondsSer.getRusbondsCred());
         rusbondsServ.setRusbondsKeys(selRusbondsSer.getRusbondsCred());
     }
 
@@ -141,6 +142,7 @@ public class UpdateBondService
 
         updateMarketValueNow(bond, findtoolId);
         updateRating(bond, findtoolId);
+        updateActualBalanceCount(bond, findtoolId);
         updateAction(bond);
         updateCompTicketLiveTimeYear(bond);
 
@@ -152,26 +154,12 @@ public class UpdateBondService
         List<Bond> bondsToUpdate = new ArrayList<>();
         for(Bond bond : bondServ.getBondsToUpdate())
         {
-            if (bondNeedUpdate(bond))
+            if (bond.isNeedUpdate())
             {
                bondsToUpdate.add(bond);
             }
         }
         return  bondsToUpdate;
-    }
-
-    private boolean bondNeedUpdate(Bond bond)
-    {
-        if (bond.getIsin().isEmpty())
-        {
-            return false;
-        }
-
-        if (bond.getSysModifyDate().isEqual(LocalDate.now()))
-        {
-            return false;
-        }
-        return true;
     }
 
     public void saveUpdateBond(Bond bond)
@@ -186,6 +174,31 @@ public class UpdateBondService
         log.info("Bonds successfully updated");
         bondServ.exportData();
         bondServ.writeModifyDate();
+    }
+
+    private void updateActualBalanceCount(Bond bond, int findtoolId)
+    {
+        List<BondRepayment> repayments = rusbondsServ.getRepayments(findtoolId);
+        double deltaPercent = 100;
+        for (BondRepayment repayment : repayments)
+        {
+            if (repayment.getMtyDate().isBefore(LocalDate.now())
+                    || repayment.getMtyDate().isEqual(LocalDate.now()))
+            {
+                deltaPercent-=repayment.getMtyPart();
+            }
+        }
+        int newActualBalanceCount = (int) Math.round( (double) bond.getCount() / 100 * deltaPercent);
+
+        if (bond.getActualBalanceCount() != newActualBalanceCount)
+        {
+            log.info("Bond ISIN={} last ActualBalanceCount={} new ActualBalanceCount={}",
+                    bond.getIsin(),
+                    bond.getActualBalanceCount(),
+                    newActualBalanceCount
+            );
+            bond.setActualBalanceCount(newActualBalanceCount);
+        }
     }
 
     private void updateCompTicketLiveTimeYear(Bond bond)
@@ -258,7 +271,7 @@ public class UpdateBondService
             pureRating = BondMapper.pureRating(bondRating);
         }
 
-        String newAction = String.valueOf(getAccRatingLotCount(pureRating) - bond.getCount());
+        String newAction = String.valueOf(getAccRatingLotCount(pureRating) - bond.getActualBalanceCount());
 
         if(pureRating.contains("C") || pureRating.contains("D"))
         {

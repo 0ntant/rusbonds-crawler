@@ -2,9 +2,7 @@ package service;
 
 import app.mapper.BondMapper;
 import app.model.Bond;
-import app.service.BondService;
-import app.service.BondSheetService;
-import app.service.UpdateBondService;
+import app.service.*;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,7 +12,7 @@ import java.util.List;
 public class UpdateBondServiceIT
 {
     UpdateBondService updateSheetSrv = new UpdateBondService();
-    BondService bondSheetServ = new BondSheetService();
+    BondService bondSheetServ = new BondSnapshotService(new DataCellService(),"TestData");
 
     @Test
     void bondsToUpdate_showList()

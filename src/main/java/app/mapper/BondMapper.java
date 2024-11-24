@@ -34,6 +34,7 @@ public class BondMapper
                 paperRepaymentTimeStr,
                 bond.getPaymentRatePerYear(),
                 bond.getCount(),
+                bond.getActualBalanceCount(),
                 bond.getRating(),
                 bond.getActivity(),
                 bond.getAction(),
@@ -67,11 +68,12 @@ public class BondMapper
                 .paperRepaymentTime(objectToLocalDate(bond.get(13)))
                 .paymentRatePerYear(objectToInteger(bond.get(14)))
                 .count(objectToInteger(bond.get(15)))
-                .rating((String) bond.get(16))
-                .activity((String) bond.get(17))
-                .action(validateAction(bond.get(18)))
-                .broker((String)bond.get(19))
-                .sysModifyDate(objectToLocalDate(bond.get(20)))
+                .actualBalanceCount(objectToInteger(bond.get(16)))
+                .rating((String) bond.get(17))
+                .activity((String) bond.get(18))
+                .action(validateAction(bond.get(19)))
+                .broker((String)bond.get(20))
+                .sysModifyDate(objectToLocalDate(bond.get(21)))
                 .build();
     }
 
@@ -155,6 +157,12 @@ public class BondMapper
     {
         String valueStr = value.toString();
         if(isStringInvalid(valueStr))
+        {
+            return 0;
+        }
+        if(valueStr.length() == 1
+                && !Character.isDigit(valueStr.charAt(0))
+        )
         {
             return 0;
         }

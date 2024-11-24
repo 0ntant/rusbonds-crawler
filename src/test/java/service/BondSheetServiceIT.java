@@ -16,31 +16,6 @@ public class BondSheetServiceIT
 {
     BondService bondService = new BondSheetService("TestData");
 
-
-//    @Test
-//    void getDataCells()
-//    {
-//        //given
-//        List<List<DataCell>> dataCells = bondSheetService.getDataCells();
-//        //then
-//
-//        //expected
-//        for(int i = 0; i < 5 ; i++)
-//        {
-//            List<DataCell> dataCells1 = dataCells.get(i);
-//            for (int j = 0; j < 10 ; j++)
-//            {
-//                System.out.printf("%s %s %s %s",
-//                        dataCells1.get(j).getValue(),
-//                        dataCells1.get(j).getNote(),
-//                        dataCells1.get(j).getCellColor(),
-//                        dataCells1.get(j).getFormula()
-//                );
-//                System.out.println();
-//            }
-//        }
-//    }
-
     @Test
     void rewrite_Bond()
     {

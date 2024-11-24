@@ -1,6 +1,11 @@
 package app.mapper;
 
+import app.model.BondRepayment;
 import com.fasterxml.jackson.databind.JsonNode;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RusbondMapper
 {
@@ -53,5 +58,20 @@ public class RusbondMapper
                 .get(0)
                 .path("ratingRu")
                 .asText();
+    }
+
+    public static List<BondRepayment> repayments(JsonNode json)
+    {
+        List<BondRepayment> bondRepayments = new ArrayList<>();
+        for(JsonNode jsonNode : json)
+        {
+            bondRepayments.add(new BondRepayment(
+                    LocalDate.parse(
+                            jsonNode.path("payDate").asText().substring(0, 10)
+                    ),
+                    jsonNode.path("value").asDouble())
+            );
+        }
+        return bondRepayments;
     }
 }

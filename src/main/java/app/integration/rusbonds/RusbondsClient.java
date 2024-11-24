@@ -1,6 +1,7 @@
 package app.integration.rusbonds;
 
 import app.exception.InvalidRusbondResponseException;
+import app.integration.rusbonds.dto.CalendarListDto;
 import app.integration.rusbonds.dto.HintDto;
 import app.integration.rusbonds.dto.RusbonCredDto;
 import app.mapper.RusbondMapper;
@@ -79,6 +80,32 @@ public class RusbondsClient
             handleResponse(request, response);
             JsonNode jsonResponse = jsonMapper.readTree(response.body());
             this.accessToken = String.format("Bearer %s", RusbondMapper.accessToken(jsonResponse));
+        }
+        catch (IOException | InterruptedException| URISyntaxException ex)
+        {
+            ex.printStackTrace();
+            log.error(ex.getMessage());
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public JsonNode getCalendarList(int findtoolId, String eventType)
+    {
+        try
+        {
+            int[] findtoolIds = {findtoolId};
+            String[] eventTypes = {eventType};
+            CalendarListDto calendarListDto
+                    = new CalendarListDto(findtoolIds, eventTypes);
+            String json = jsonMapper.writeValueAsString(calendarListDto);
+            HttpRequest request = getDefaultHeaders()
+                    .header("Authorization", accessToken)
+                    .uri(new URI("https://rusbonds.ru/api/v2/calendar/list"))
+                    .POST(BodyPublishers.ofString(json))
+                    .build();
+            HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
+            handleResponse(request, response);
+            return jsonMapper.readTree(response.body());
         }
         catch (IOException | InterruptedException| URISyntaxException ex)
         {
@@ -227,7 +254,7 @@ public class RusbondsClient
     private void handleResponse (HttpRequest request,
                                  HttpResponse<String> response)
     {
-        if (response.statusCode() != 200)
+        if (!String.valueOf(response.statusCode()).startsWith("2"))
         {
             log.error("[{}] {} | ResponseCode: {} Body: {}",
                     request.method(),

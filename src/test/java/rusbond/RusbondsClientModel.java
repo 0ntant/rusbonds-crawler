@@ -1,9 +1,8 @@
 package rusbond;
 
-
-import app.exception.InvalidIsinException;
 import app.exception.InvalidRusbondResponseException;
 import app.integration.rusbonds.RusbondsClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,6 +23,9 @@ public class RusbondsClientModel
     @Mock
     HttpClient client;
 
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    @Spy
     @InjectMocks
     RusbondsClient rusbondsClient = RusbondsClient.builder()
             .client(client)
@@ -47,7 +49,6 @@ public class RusbondsClientModel
                 .send(any(), any());
 
         //then
-
         //expected
         InvalidRusbondResponseException exception = assertThrows(InvalidRusbondResponseException.class, () ->
                 rusbondsClient.getFindtoolId(isin));

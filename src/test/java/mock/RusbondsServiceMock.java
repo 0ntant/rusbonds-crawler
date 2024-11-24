@@ -1,10 +1,14 @@
 package mock;
 
 import app.model.Bond;
+import app.model.BondRepayment;
 import app.model.RusbondsKeys;
 import app.service.RusbondsService;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 @Slf4j
@@ -18,6 +22,31 @@ public class RusbondsServiceMock implements RusbondsService
     public RusbondsServiceMock(double waitTime)
     {
         this.waitTime = waitTime;
+    }
+
+    @Override
+    public List<BondRepayment> getRepayments(int findtoolId)
+    {
+        exceptionProvider.exceptionErrorEvent();
+        List<BondRepayment> repayments = new ArrayList<>();
+        int periods = random.nextInt(1, 10);
+
+        for (int i = 0 ; i < periods; i++)
+        {
+            repayments.add(
+                new BondRepayment(
+                        LocalDate.now().plusYears(random.nextInt(0, 7)),
+                        (double) (100 / periods)
+                )
+            );
+        }
+
+        log.info("MOCK {} getRepayments arg: {} return: {}",
+                this.getClass(),
+                findtoolId,
+                repayments
+        );
+        return repayments;
     }
 
     @Override
@@ -55,6 +84,7 @@ public class RusbondsServiceMock implements RusbondsService
     @Override
     public double getMarketValueNow(int findtoolId)
     {
+        exceptionProvider.exceptionErrorEvent();
         int marketValueNow = random.nextInt(10, 100);
         log.info("MOCK {} getMarketValueNow arg findtoolId={} return marketValueNow={}",
                 this.getClass(),

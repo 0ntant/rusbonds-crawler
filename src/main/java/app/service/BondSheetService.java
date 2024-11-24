@@ -2,13 +2,11 @@ package app.service;
 
 import app.mapper.BondMapper;
 import app.model.Bond;
-import app.model.DataCell;
+import app.util.BackupDirUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -20,7 +18,7 @@ public class BondSheetService implements BondService
 {
     protected String sheetName = "Sheet1";
     protected final int rowOffset = 2;
-    protected final String rangeTemplate = "%s!A%s:U%s";
+    protected final String rangeTemplate = "%s!A%s:V%s";
     GoogleSheetService googleSheetService = new GoogleSheetService();
     protected String range;
 
@@ -49,6 +47,19 @@ public class BondSheetService implements BondService
 
     public BondSheetService(GoogleSheetService googleSheetService)
     {
+        this.googleSheetService = googleSheetService;
+        int maxRow = getMaxRow();
+        this.range = String.format(
+                rangeTemplate,
+                sheetName,
+                rowOffset,
+                maxRow
+        );
+    }
+
+    public BondSheetService(GoogleSheetService googleSheetService, String sheetName)
+    {
+        this.sheetName = sheetName;
         this.googleSheetService = googleSheetService;
         int maxRow = getMaxRow();
         this.range = String.format(
@@ -169,16 +180,24 @@ public class BondSheetService implements BondService
     @Override
     public String exportData()
     {
-        File file = new File("");
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("M-d-yyyy");
-        LocalDate localDate = LocalDate.now();
-        String dumpDir = String.format(
-                "/%s/dump/%s_%s_backup.csv",
-                file.getAbsoluteFile(),
-                localDate.format(formatter),
-                sheetName
-
-        );
+//        File file = new File("");
+//        File sheetDumpDir = new File("/%s/dump/%s".formatted(file.getAbsoluteFile(), sheetName));
+//        if (!sheetDumpDir.exists())
+//        {
+//            sheetDumpDir.mkdir();
+//        }
+//
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("M_d_yyyy");
+//        LocalDate localDate = LocalDate.now();
+//        String dumpDir = String.format(
+//                "%s/%s_%s_backup.csv",
+//                sheetDumpDir.getAbsolutePath(),
+//                localDate.format(formatter),
+//                sheetName
+//
+//        );
+        String dumpDir = BackupDirUtil.createBackupDirDeleteOld(sheetName);
+        log.info("Creating dump file {}", dumpDir);
         googleSheetService.exportTable(range, dumpDir);
         return dumpDir;
     }

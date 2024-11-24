@@ -34,6 +34,7 @@ public class Bond
     LocalDate paperRepaymentTime;
     Integer paymentRatePerYear;
     Integer count;
+    Integer actualBalanceCount;
     String rating;
     String activity;
     String action;
@@ -57,5 +58,19 @@ public class Bond
                         .abs()
                         .divide(BigDecimal.valueOf(365), 2, RoundingMode.HALF_EVEN)
                         .doubleValue();
+    }
+
+    public boolean isNeedUpdate()
+    {
+        if (getIsin().isEmpty() || getIsin().isBlank())
+        {
+            return false;
+        }
+
+        if (getSysModifyDate().isEqual(LocalDate.now()))
+        {
+            return false;
+        }
+        return true;
     }
 }

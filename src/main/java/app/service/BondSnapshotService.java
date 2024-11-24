@@ -39,6 +39,13 @@ public class BondSnapshotService
         prepareSnapshot();
     }
 
+    public BondSnapshotService(DataCellService dataCellService, 
+                               String sheetName)
+    {
+        super(dataCellService, sheetName);
+        this.googleSheetService = dataCellService;
+        prepareSnapshot();
+    }
 
     @Override
     public List<Bond> getAll()
@@ -73,10 +80,15 @@ public class BondSnapshotService
 
     private boolean isSnapshotReadyToSave()
     {
-        Bond lastInSnapshot = DataCellMapper.mapBond(snapshot.get(snapshot.size() - 1));
-        Bond lastInBondToUpdate = bondsToUpdate.get(bondsToUpdate.size() - 1);
+//        Bond lastInSnapshot = DataCellMapper.mapBond(snapshot.get(snapshot.size() - 1));
+//        Bond lastInBondToUpdate = bondsToUpdate.get(bondsToUpdate.size() - 1);
+//
+//        return lastInSnapshot.equals(lastInBondToUpdate);
 
-        return lastInSnapshot.equals(lastInBondToUpdate);
+        return bondsToUpdate.size() == DataCellMapper.mapBonds(snapshot)
+                .stream()
+                .filter(Bond::isNeedUpdate)
+                .count();
     }
 
     private void saveSnapshot()
@@ -181,7 +193,6 @@ public class BondSnapshotService
         }
         snapshot = currentSnapshot;
     }
-
 
     private List<List<DataCell>> getCurrentSnapshot()
     {

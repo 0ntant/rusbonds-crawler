@@ -14,11 +14,11 @@ services:
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:4444" ]
       interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 1m
   rusbonds-crawler:
-    image: rusbonds-crawler:1.4.1
+    image: rusbonds-crawler:1.5.1
     container_name: rusbonds-crawler
     environment:
       - TZ=Asia/Vladivostok
