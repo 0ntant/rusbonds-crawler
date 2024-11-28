@@ -1,5 +1,6 @@
 package app.service;
 
+import app.model.Env;
 import app.model.GoogleSheet;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,8 @@ import java.util.NoSuchElementException;
 
 @AllArgsConstructor
 @Slf4j
-public class UpdateManagerService {
+public class UpdateManagerService
+{
     List<GoogleSheet> googleSheets;
 
     public UpdateManagerService()
@@ -36,6 +38,8 @@ public class UpdateManagerService {
                 .bondServ(new BondSnapshotService(dataCellService, oldestSheet.getName()))
                 .rusbondsServ(new RusbondsServiceImp())
                 .selRusbondsSer(new SelRusbondsServiceProxyImp())
+                .notificationService(new NotificationService(Env.PROD))
+                .bondValidatorService(new BondValidatorService())
                 .build();
 
         updateBondService.startUpdateProcess();

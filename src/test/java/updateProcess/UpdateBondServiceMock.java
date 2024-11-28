@@ -1,20 +1,13 @@
 package updateProcess;
 
-import app.model.Bond;
-import app.service.AccountingPolicySheetService;
-import app.service.BondSnapshotService;
-import app.service.DataCellService;
-import app.service.UpdateBondService;
+import app.model.Env;
+import app.service.*;
 import mock.RusbondsServiceMock;
 import mock.SelRusbondsServiceProxyMock;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.mockito.Mockito.*;
 
@@ -30,6 +23,8 @@ public class UpdateBondServiceMock
             .bondServ(new BondSnapshotService(dataCellService,"TestData"))
             .rusbondsServ(new RusbondsServiceMock(0.01))
             .selRusbondsSer(new SelRusbondsServiceProxyMock(0.01))
+            .notificationService(new NotificationService(Env.TEST))
+            .bondValidatorService(new BondValidatorService())
             .build();
 
     @Test

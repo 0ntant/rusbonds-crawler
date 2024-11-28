@@ -4,6 +4,7 @@ import app.mapper.BondMapper;
 import app.model.Bond;
 import app.util.BackupDirUtil;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
@@ -16,6 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 public class BondSheetService implements BondService
 {
+    @Getter
     protected String sheetName = "Sheet1";
     protected final int rowOffset = 2;
     protected final String rangeTemplate = "%s!A%s:V%s";

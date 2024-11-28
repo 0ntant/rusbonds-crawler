@@ -1,6 +1,7 @@
 package updateProcess;
 
 import app.model.Bond;
+import app.model.Env;
 import app.service.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +23,8 @@ public class UpdateBondServiceIT
             .bondServ(new BondSnapshotService("TestData"))
             .rusbondsServ(new RusbondsServiceImp())
             .selRusbondsSer(new SelRusbondsServiceProxyImp())
+            .notificationService(new NotificationService(Env.TEST))
+            .bondValidatorService(new BondValidatorService())
             .build();
 
     @Test

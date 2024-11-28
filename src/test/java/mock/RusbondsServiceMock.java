@@ -1,5 +1,6 @@
 package mock;
 
+import app.exception.InvalidIsinException;
 import app.model.Bond;
 import app.model.BondRepayment;
 import app.model.RusbondsKeys;
@@ -71,6 +72,13 @@ public class RusbondsServiceMock implements RusbondsService
     @Override
     public int getFintoolId(Bond bond)
     {
+        if (bond.getIsin().contains("invalid"))
+        {
+            throw new InvalidIsinException("Making invalid exception mock ISIN=%s"
+                    .formatted(bond.getIsin())
+            );
+        }
+
         int fintoolId = random.nextInt(10_000, 99_999);
         log.info("MOCK {} getFintoolId arg bond={} return fintoolId={}",
                 this.getClass(),

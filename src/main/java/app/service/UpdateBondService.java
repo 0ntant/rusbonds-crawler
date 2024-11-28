@@ -5,6 +5,8 @@ import app.mapper.BondMapper;
 import app.model.AccountingPolicy;
 import app.model.Bond;
 import app.model.BondRepayment;
+import app.model.Env;
+import app.util.NotificationMessageUtil;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +25,8 @@ public class UpdateBondService
     SelRusbondsServiceProxy selRusbondsSer;
     List<AccountingPolicy> accPolices;
     AccountingPolicySheetService accServ;
+    NotificationService notificationService;
+    BondValidatorService bondValidatorService;
 
     public UpdateBondService()
     {
@@ -31,10 +35,32 @@ public class UpdateBondService
         selRusbondsSer = new SelRusbondsServiceProxyImp();
         bondServ = new BondSheetService(googleSheetService);
         accServ = new AccountingPolicySheetService(googleSheetService);
+        notificationService = new NotificationService(Env.PROD);
+        bondValidatorService = new BondValidatorService();
     }
 
     public void startUpdateProcess()
     {
+        Set<Bond> duplicates = bondValidatorService.getDuplicatesIsins(getBondsToUpdate());
+
+        if (!duplicates.isEmpty())
+        {
+            notifyDuplicate(duplicates);
+
+            log.error("Update not started because of duplicates={}",
+                    duplicates
+                            .stream()
+                            .map(bond -> "num: %s isin %s".
+                                    formatted(
+                                            bond.getNumber(),
+                                            bond.getIsin()
+                                    )
+                            )
+                            .toList()
+            );
+            return;
+        }
+
         if (!isNeedUpdate())
         {
             log.warn("Update not needed");
@@ -45,6 +71,7 @@ public class UpdateBondService
         log.info("Start update process");
         startUpdateCycle();
     }
+
 
     private void prepareUpdateProcess()
     {
@@ -137,6 +164,7 @@ public class UpdateBondService
             );
             bond.setIsin("");
             saveUpdateBond(bond);
+            bondValidatorService.getInvalidBonds().add(bond);
             return;
         }
 
@@ -174,6 +202,32 @@ public class UpdateBondService
         log.info("Bonds successfully updated");
         bondServ.exportData();
         bondServ.writeModifyDate();
+
+        List<Bond> bondsInvalidIsins = bondValidatorService.getInvalidBonds();
+        if (!bondsInvalidIsins.isEmpty())
+        {
+            notifyInvalidIsins(bondsInvalidIsins);
+        }
+    }
+
+    private void notifyInvalidIsins(List<Bond> bonds)
+    {
+        notificationService.broadcastMessage(
+                NotificationMessageUtil.invalidIsin(
+                        bondServ.getSheetName(),
+                        bonds
+                )
+        );
+    }
+
+    private void notifyDuplicate(Set<Bond> bonds)
+    {
+        notificationService.broadcastMessage(
+                NotificationMessageUtil.duplicateBonds(
+                        bondServ.getSheetName(),
+                        bonds.stream().toList()
+                )
+        );
     }
 
     private void updateActualBalanceCount(Bond bond, int findtoolId)

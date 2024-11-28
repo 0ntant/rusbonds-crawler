@@ -6,6 +6,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface BondService {
+
+    String getSheetName();
+
     List<Bond> getAll();
 
     List<Bond> getBondsToUpdate();
